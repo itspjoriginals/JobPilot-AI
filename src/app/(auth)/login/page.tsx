@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,7 @@ import { FcGoogle } from 'react-icons/fc';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signInWithGoogle, user, loading } = useAuth();
+  const { signIn, signInWithGoogle, signInWithLinkedIn, user, loading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -35,7 +36,6 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signIn(email, password);
-      // Let the useEffect handle the redirect
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -48,7 +48,18 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // Let the useEffect handle the redirect
+    } catch (error: any) {
+      toast({
+        title: 'Login Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLinkedInSignIn = async () => {
+    try {
+      await signInWithLinkedIn();
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -83,7 +94,7 @@ export default function LoginPage() {
                 <FcGoogle className="mr-2 h-5 w-5" />
                 Google
               </Button>
-              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" disabled>
+              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" onClick={handleLinkedInSignIn} disabled={loading}>
                 <Linkedin className="mr-2 h-5 w-5" />
                 LinkedIn
               </Button>
@@ -105,7 +116,7 @@ export default function LoginPage() {
                   <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Password</_Label>
                   <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>

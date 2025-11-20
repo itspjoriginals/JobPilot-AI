@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -16,7 +17,7 @@ import { FcGoogle } from 'react-icons/fc';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle, loading, user } = useAuth();
+  const { signUp, signInWithGoogle, signInWithLinkedIn, loading, user } = useAuth();
   const { toast } = useToast();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -37,7 +38,6 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       await signUp(email, password, name);
-      // The useEffect will handle the redirect
     } catch (error: any) {
         toast({
             title: 'Signup Failed',
@@ -50,7 +50,18 @@ export default function SignupPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // The useEffect will handle the redirect
+    } catch (error: any) {
+      toast({
+        title: 'Signup Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLinkedInSignIn = async () => {
+    try {
+      await signInWithLinkedIn();
     } catch (error: any) {
       toast({
         title: 'Signup Failed',
@@ -85,7 +96,7 @@ export default function SignupPage() {
                   <FcGoogle className="mr-2 h-5 w-5" />
                   Google
                 </Button>
-                <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" disabled>
+                <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" onClick={handleLinkedInSignIn} disabled={loading}>
                   <Linkedin className="mr-2 h-5 w-5" />
                   LinkedIn
                 </Button>

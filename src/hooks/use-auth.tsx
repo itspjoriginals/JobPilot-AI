@@ -10,6 +10,7 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -29,6 +30,7 @@ interface AuthContextType {
   signIn: (email: string, pass: string) => Promise<any>;
   signUp: (email: string, pass: string, name: string) => Promise<any>;
   signInWithGoogle: () => Promise<any>;
+  signInWithLinkedIn: () => Promise<any>;
   signOut: () => Promise<any>;
   updateUserConsent: (uid: string) => Promise<void>;
 }
@@ -50,6 +52,14 @@ const handleAuthError = (error: any) => {
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
         throw new Error('Invalid email or password.');
+      case 'auth/popup-closed-by-user':
+        throw new Error('Sign-in process was cancelled.');
+      case 'auth/account-exists-with-different-credential':
+        throw new Error('An account already exists with the same email address but different sign-in credentials.');
+      case 'auth/auth-domain-config-required':
+         throw new Error('Authentication domain is not configured. Please check your Firebase project settings.');
+      case 'auth/cancelled-popup-request':
+         return; // Do nothing, user cancelled.
       default:
         throw new Error(error.message || 'An unexpected authentication error occurred.');
     }
@@ -79,7 +89,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             hasConsented: false,
           };
           
-          // Use the new error handling for Firestore operations
           setDoc(userDocRef, newUserPayload, { merge: true }).catch((serverError) => {
               const permissionError = new FirestorePermissionError({
                   path: userDocRef.path,
@@ -128,6 +137,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const signInWithLinkedIn = async () => {
+    try {
+      const provider = new OAuthProvider('linkedin.com');
+      return await signInWithPopup(auth, provider);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  };
+
 
   const signOut = () => {
     return firebaseSignOut(auth).then(() => {
@@ -147,6 +165,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithLinkedIn,
     signOut,
     updateUserConsent,
   };
