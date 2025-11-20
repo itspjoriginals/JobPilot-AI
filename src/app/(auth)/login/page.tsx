@@ -94,7 +94,7 @@ export default function LoginPage() {
                 <FcGoogle className="mr-2 h-5 w-5" />
                 Google
               </Button>
-              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" onClick={handleLinkedInSignIn} disabled={loading}>
+              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" onClick={handleLinkedInSignIn} >
                 <Linkedin className="mr-2 h-5 w-5" />
                 LinkedIn
               </Button>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                   <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</_Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
