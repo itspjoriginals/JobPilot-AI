@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   User as FirebaseUser, 
   onIdTokenChanged, 
@@ -19,7 +19,7 @@ interface User extends FirebaseUser {
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
+  loading: boolean; // This will represent the initial auth state check
   signIn: (email: string, pass: string) => Promise<any>;
   signUp: (email: string, pass: string, name: string) => Promise<any>;
   signOut: () => Promise<any>;
@@ -40,35 +40,35 @@ const handleAuthError = (error: any) => {
       case 'auth/weak-password':
         throw new Error('The password is too weak. It must be at least 6 characters long.');
       default:
-        throw new Error(error.message);
+        throw new Error(error.message || 'An unexpected error occurred.');
     }
   }
   throw error;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const unprotectedRoutes = ['/login', '/signup'];
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Represents the initial auth check
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const mergedUser = { ...user, ...userData } as User;
-          setUser(mergedUser);
-          if (pathnameRequiresConsent(pathname) && !mergedUser.hasConsented) {
-             router.push('/consent');
-          }
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef).catch(e => {
+            // This can happen if offline, but we can proceed with basic user info
+            console.error("Firebase getDoc error:", e);
+            return null;
+        });
+
+        if (userDoc && userDoc.exists()) {
+          setUser({ ...firebaseUser, ...userDoc.data() } as User);
         } else {
-           setUser(user as User);
-           if (pathnameRequiresConsent(pathname)) {
-            router.push('/consent');
-           }
+          // Fallback if doc doesn't exist yet (e.g., during signup race condition)
+          setUser(firebaseUser as User);
         }
       } else {
         setUser(null);
@@ -77,12 +77,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, [router, pathname]);
+  }, []);
 
-  const pathnameRequiresConsent = (path: string) => {
-      const protectedRoutes = ['/jobs', '/resumes', '/applications', '/settings', '/admin'];
-      return protectedRoutes.some(p => path.startsWith(p));
-  }
+  useEffect(() => {
+    if (loading) {
+      return; // Don't do anything while loading
+    }
+
+    const isUserLoggedIn = !!user;
+    const isAuthRoute = unprotectedRoutes.includes(pathname);
+    const requiresConsent = user && !user.hasConsented;
+
+    if (isUserLoggedIn) {
+        if (requiresConsent) {
+            if (pathname !== '/consent') {
+                router.push('/consent');
+            }
+        } else if (isAuthRoute) {
+            router.push('/jobs');
+        }
+    } else { // User is not logged in
+        if (!isAuthRoute && pathname !== '/consent') {
+             router.push('/login');
+        }
+    }
+
+  }, [user, loading, pathname, router]);
 
   const signIn = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass).catch(handleAuthError);
@@ -90,22 +110,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, pass: string, name: string) => {
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-        const firebaseUser = userCredential.user;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const firebaseUser = userCredential.user;
 
-        if (firebaseUser) {
-            await updateProfile(firebaseUser, { displayName: name });
-            await setDoc(doc(db, 'users', firebaseUser.uid), {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: name,
-                createdAt: serverTimestamp(),
-                hasConsented: false,
-            });
-        }
-        return userCredential;
+      await updateProfile(firebaseUser, { displayName: name });
+
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: name,
+        createdAt: serverTimestamp(),
+        hasConsented: false,
+      });
+
+      return userCredential;
     } catch (error) {
-        handleAuthError(error);
+      handleAuthError(error);
     }
   };
 
@@ -118,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(userRef, { hasConsented: true });
     setUser(prevUser => prevUser ? { ...prevUser, hasConsented: true } : null);
   };
-  
 
   const value = {
     user,
@@ -128,8 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     updateUserConsent,
   };
-
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  
+  // Render children only after initial auth check is complete
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
