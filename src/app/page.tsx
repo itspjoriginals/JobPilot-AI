@@ -2,19 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import useLocalStorage from '@/hooks/use-local-storage';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Home() {
   const router = useRouter();
-  const [isLoggedIn] = useLocalStorage('isLoggedIn', false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.replace('/jobs');
-    } else {
-      router.replace('/login');
+    if (!loading) {
+      if (user) {
+        router.replace('/jobs');
+      } else {
+        router.replace('/login');
+      }
     }
-  }, [router, isLoggedIn]);
+  }, [router, user, loading]);
 
-  return null;
+  // You can show a loading spinner here while checking auth state
+  return <div>Loading...</div>;
 }

@@ -13,17 +13,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LogOut, User } from 'lucide-react';
-import { mockUser } from '@/lib/data';
 import Link from 'next/link';
-import useLocalStorage from '@/hooks/use-local-storage';
+import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 export function DashboardHeader() {
   const router = useRouter();
-  const [, setIsLoggedIn] = useLocalStorage('isLoggedIn', false);
+  const { user, signOut } = useAuth();
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await signOut();
     router.push('/login');
   };
 
@@ -38,13 +37,13 @@ export function DashboardHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
             <Avatar>
-              <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-              <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || ''} />
+              <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{mockUser.name}</DropdownMenuLabel>
+          <DropdownMenuLabel>{user?.displayName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/settings">

@@ -7,20 +7,41 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import useLocalStorage from '@/hooks/use-local-storage';
+import { useAuth } from '@/hooks/use-auth';
+import React from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [, setIsLoggedIn] = useLocalStorage('isLoggedIn', false);
+  const { signUp, loading, user } = useAuth();
+  const { toast } = useToast();
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
 
-  const handleSignup = (e: React.FormEvent) => {
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This is a mock signup.
-    setIsLoggedIn(true);
-    // A real signup would also clear 'hasConsented' or check for it.
-    // For this mock, we go straight to consent.
-    router.push('/consent');
+    try {
+      await signUp(email, password, name);
+      router.push('/consent');
+    } catch (error: any) {
+        toast({
+            title: 'Signup Failed',
+            description: error.message,
+            variant: 'destructive',
+          });
+    }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (user) {
+    router.push('/jobs');
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -37,20 +58,20 @@ export default function SignupPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" type="text" placeholder="Alex Doe" required />
+                <Input id="name" type="text" placeholder="Alex Doe" required value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="alex.doe@example.com" required />
+                <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">
-              <Button type="submit" className="w-full">
-                Create Account
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Creating Account...' : 'Create Account'}
               </Button>
                <p className="text-sm text-muted-foreground">
                 Already have an account?{' '}

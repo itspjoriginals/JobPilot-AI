@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import useLocalStorage from '@/hooks/use-local-storage';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 const consentItems = [
   { id: 'automation', label: 'I consent to JobPilot AI automating job applications on my behalf.' },
@@ -18,10 +19,11 @@ const consentItems = [
 
 export default function ConsentPage() {
   const router = useRouter();
+  const { user, updateUserConsent } = useAuth();
+  const { toast } = useToast();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(
     consentItems.reduce((acc, item) => ({ ...acc, [item.id]: false }), {})
   );
-  const [, setHasConsented] = useLocalStorage('hasConsented', false);
 
   const handleCheckboxChange = (id: string) => {
     setCheckedState((prevState) => ({ ...prevState, [id]: !prevState[id] }));
@@ -29,10 +31,18 @@ export default function ConsentPage() {
 
   const allChecked = Object.values(checkedState).every(Boolean);
 
-  const handleSubmit = () => {
-    if (allChecked) {
-      setHasConsented(true);
-      router.push('/jobs');
+  const handleSubmit = async () => {
+    if (allChecked && user) {
+      try {
+        await updateUserConsent(user.uid);
+        router.push('/jobs');
+      } catch (error) {
+        toast({
+            title: 'Error',
+            description: 'Could not save consent.',
+            variant: 'destructive',
+          });
+      }
     }
   };
 
