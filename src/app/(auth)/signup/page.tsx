@@ -9,14 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import useLocalStorage from '@/hooks/use-local-storage';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [hasConsented] = useLocalStorage('hasConsented', false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd perform authentication here.
-    // For this mock, we'll assume login is successful.
+    // In a real app, you'd perform user creation and authentication here.
+    // For this mock, we'll just proceed to the consent page.
     if (hasConsented) {
       router.push('/');
     } else {
@@ -32,11 +32,15 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
-            <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
+            <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
+            <CardDescription>Join JobPilot AI and automate your job search.</CardDescription>
           </CardHeader>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSignup}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" type="text" placeholder="Alex Doe" required />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="alex.doe@example.com" required />
@@ -48,12 +52,12 @@ export default function LoginPage() {
             </CardContent>
             <CardFooter className="flex-col gap-4">
               <Button type="submit" className="w-full">
-                Sign In
+                Create Account
               </Button>
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/signup" className="font-medium text-primary hover:underline">
-                  Sign Up
+               <p className="text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/login" className="font-medium text-primary hover:underline">
+                  Sign In
                 </Link>
               </p>
             </CardFooter>
