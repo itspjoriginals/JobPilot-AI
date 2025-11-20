@@ -38,7 +38,7 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       await signUp(email, password, name);
-      router.push('/consent');
+      // The useEffect will handle the redirect
     } catch (error: any) {
         toast({
             title: 'Signup Failed',
@@ -62,7 +62,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-transparent px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <Logo />
@@ -72,8 +72,8 @@ export default function SignupPage() {
             <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
             <CardDescription>Join JobPilot AI and automate your job search.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Button variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
                   <FcGoogle className="mr-2 h-5 w-5" />
                   Google
@@ -83,10 +83,15 @@ export default function SignupPage() {
                   LinkedIn
                 </Button>
             </div>
-            <div className="flex items-center">
-              <Separator className="flex-grow" />
-              <span className="mx-4 text-xs text-muted-foreground">OR CONTINUE WITH EMAIL</span>
-              <Separator className="flex-grow" />
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with email
+                    </span>
+                </div>
             </div>
           </CardContent>
           <form onSubmit={handleSignup}>

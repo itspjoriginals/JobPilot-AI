@@ -3,6 +3,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
+import { FluidBackground } from '@/components/fluid-background';
 
 export const metadata: Metadata = {
   title: 'JobPilot AI',
@@ -30,6 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <FluidBackground />
             {children}
             <Toaster />
           </AuthProvider>
