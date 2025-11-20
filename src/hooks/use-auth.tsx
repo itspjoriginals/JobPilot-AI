@@ -67,13 +67,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser({ ...firebaseUser, ...userDoc.data() } as User);
-        } else {
-          // This can happen during signup before the doc is created
-          setUser(firebaseUser as User);
+        let userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+          // If the doc doesn't exist, this is likely the first login after signup.
+          // Create the document.
+          await setDoc(userDocRef, {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            createdAt: serverTimestamp(),
+            hasConsented: false,
+          });
+          // Re-fetch the document to get server-generated fields
+          userDoc = await getDoc(userDocRef);
         }
+        
+        setUser({ ...firebaseUser, ...userDoc.data() } as User);
+
       } else {
         setUser(null);
       }
@@ -105,29 +117,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return signInWithEmailAndPassword(auth, email, pass).catch(handleAuthError);
   };
 
-  const createOrUpdateUserInFirestore = async (firebaseUser: FirebaseUser) => {
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      await setDoc(userRef, {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-        createdAt: serverTimestamp(),
-        hasConsented: false,
-      });
-      setUser({ ...firebaseUser, hasConsented: false } as User);
-    }
-  };
-
   const signUp = async (email: string, pass: string, name: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const firebaseUser = userCredential.user;
+      // The onIdTokenChanged listener will handle creating the Firestore document.
       await updateProfile(firebaseUser, { displayName: name });
-      await createOrUpdateUserInFirestore(firebaseUser);
       return userCredential;
     } catch (error) {
       handleAuthError(error);
@@ -138,7 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      await createOrUpdateUserInFirestore(userCredential.user);
+      // The onIdTokenChanged listener will handle creating/updating the Firestore document.
       return userCredential;
     } catch (error) {
       handleAuthError(error);
