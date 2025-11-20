@@ -11,12 +11,11 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Briefcase, FileText, History, Settings, ShieldCheck, Github } from 'lucide-react';
+import { Briefcase, FileText, History, Settings, ShieldCheck } from 'lucide-react';
 import { Logo } from '../logo';
-import { Button } from '../ui/button';
 
 const menuItems = [
-  { href: '/', label: 'Jobs', icon: Briefcase },
+  { href: '/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/resumes', label: 'Resumes', icon: FileText },
   { href: '/applications', label: 'Applications', icon: History },
   { href: '/settings', label: 'Settings', icon: Settings },

@@ -12,13 +12,15 @@ import useLocalStorage from '@/hooks/use-local-storage';
 export default function LoginPage() {
   const router = useRouter();
   const [hasConsented] = useLocalStorage('hasConsented', false);
+  const [, setIsLoggedIn] = useLocalStorage('isLoggedIn', false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd perform authentication here.
-    // For this mock, we'll assume login is successful.
+    // This is a mock login. In a real app, you'd verify credentials.
+    setIsLoggedIn(true);
+
     if (hasConsented) {
-      router.push('/');
+      router.push('/jobs');
     } else {
       router.push('/consent');
     }

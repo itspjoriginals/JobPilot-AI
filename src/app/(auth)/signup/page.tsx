@@ -11,17 +11,15 @@ import useLocalStorage from '@/hooks/use-local-storage';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [hasConsented] = useLocalStorage('hasConsented', false);
+  const [, setIsLoggedIn] = useLocalStorage('isLoggedIn', false);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd perform user creation and authentication here.
-    // For this mock, we'll just proceed to the consent page.
-    if (hasConsented) {
-      router.push('/');
-    } else {
-      router.push('/consent');
-    }
+    // This is a mock signup.
+    setIsLoggedIn(true);
+    // A real signup would also clear 'hasConsented' or check for it.
+    // For this mock, we go straight to consent.
+    router.push('/consent');
   };
 
   return (

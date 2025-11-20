@@ -32,7 +32,7 @@ export default function ConsentPage() {
   const handleSubmit = () => {
     if (allChecked) {
       setHasConsented(true);
-      router.push('/');
+      router.push('/jobs');
     }
   };
 

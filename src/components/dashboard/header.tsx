@@ -15,8 +15,18 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LogOut, User } from 'lucide-react';
 import { mockUser } from '@/lib/data';
 import Link from 'next/link';
+import useLocalStorage from '@/hooks/use-local-storage';
+import { useRouter } from 'next/navigation';
 
 export function DashboardHeader() {
+  const router = useRouter();
+  const [, setIsLoggedIn] = useLocalStorage('isLoggedIn', false);
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    router.push('/login');
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <SidebarTrigger className="sm:hidden" />
@@ -43,7 +53,7 @@ export function DashboardHeader() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </DropdownMenuItem>
