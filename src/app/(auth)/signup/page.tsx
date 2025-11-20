@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
@@ -18,6 +18,13 @@ export default function SignupPage() {
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+
+  useEffect(() => {
+    // Redirect if user is already logged in
+    if (!loading && user) {
+      router.push('/jobs');
+    }
+  }, [user, loading, router]);
 
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -38,11 +45,7 @@ export default function SignupPage() {
     return <div>Loading...</div>;
   }
 
-  if (user) {
-    router.push('/jobs');
-    return null;
-  }
-
+  // Render the signup form if there is no user
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">

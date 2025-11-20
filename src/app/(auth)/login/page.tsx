@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -18,11 +18,18 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/jobs');
+    }
+  }, [user, loading, router]);
+
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signIn(email, password);
-      router.push('/jobs');
+      // The useEffect hook will handle the redirect
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -36,12 +43,7 @@ export default function LoginPage() {
     return <div>Loading...</div>;
   }
 
-  if (user) {
-    router.push('/jobs');
-    return null;
-  }
-
-
+  // Render the login form if there is no user
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
