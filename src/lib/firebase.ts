@@ -1,41 +1,27 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
 
 // TODO: Add your Firebase project configuration here
 const firebaseConfig = {
-  apiKey: "AIzaSyBcKgcrJ2WCobxZNow77nJ4BPxIpmmDMg8",
-  authDomain: "named-icon-459805-j6.firebaseapp.com",
-  projectId: "named-icon-459805-j6",
-  storageBucket: "named-icon-459805-j6.firebasestorage.app",
-  messagingSenderId: "511638271294",
-  appId: "1:511638271294:web:aec8f7f1e7af3cfedf286f",
-  measurementId: "G-XD6Q9EL571"
+  apiKey: "AIzaSyCeu5_r53uiYRQTbyP9C00qXjOU--n3yZY",
+  authDomain: "jobpilot-ai-c18f7.firebaseapp.com",
+  projectId: "jobpilot-ai-c18f7",
+  storageBucket: "jobpilot-ai-c18f7.firebasestorage.app",
+  messagingSenderId: "363879421956",
+  appId: "1:363879421956:web:38192e34f523649b643d51",
+  measurementId: "G-1V1WRJFHM1"
 };
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// Enable offline persistence
-try {
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          // Multiple tabs open, persistence can only be enabled
-          // in one tab at a time.
-          console.warn('Firestore persistence failed: multiple tabs open.');
-        } else if (err.code == 'unimplemented') {
-          // The current browser does not support all of the
-          // features required to enable persistence
-          console.warn('Firestore persistence not available in this browser.');
-        }
-      });
-} catch (error) {
-    console.error("Firebase persistence error:", error);
-}
-
+// Initialize Firestore with offline persistence.
+// The `memoryLocalCache` is a fallback for environments where IndexedDB is not available.
+const db = initializeFirestore(app, {
+  localCache: memoryLocalCache(),
+});
 
 export { app, auth, db };
