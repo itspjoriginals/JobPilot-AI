@@ -67,24 +67,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
-        let userDoc = await getDoc(userDocRef);
+        const userDoc = await getDoc(userDocRef);
 
+        let userData;
         if (!userDoc.exists()) {
-          // If the doc doesn't exist, this is likely the first login after signup.
-          // Create the document.
-          await setDoc(userDocRef, {
+          // If the doc doesn't exist, this is the first login after signup.
+          const newUserPayload = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             createdAt: serverTimestamp(),
             hasConsented: false,
-          });
-          // Re-fetch the document to get server-generated fields
-          userDoc = await getDoc(userDocRef);
+          };
+          await setDoc(userDocRef, newUserPayload);
+          userData = newUserPayload;
+        } else {
+          userData = userDoc.data();
         }
         
-        setUser({ ...firebaseUser, ...userDoc.data() } as User);
+        setUser({ ...firebaseUser, ...userData } as User);
 
       } else {
         setUser(null);
@@ -94,35 +96,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (loading) return;
-
-    const isAuthRoute = unprotectedRoutes.includes(pathname);
-    const isOnConsentRoute = pathname === consentRoute;
-
-    if (user) {
-      if (user.hasConsented === false && !isOnConsentRoute) {
-        router.push(consentRoute);
-      } else if (user.hasConsented === true && (isAuthRoute || isOnConsentRoute)) {
-        router.push('/jobs');
-      }
-    } else {
-      if (!isAuthRoute && !isOnConsentRoute) {
-        router.push('/login');
-      }
-    }
-  }, [user, loading, pathname, router]);
-
   const signIn = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass).catch(handleAuthError);
   };
 
-  const signUp = async (email: string, pass: string, name: string) => {
+  const signUp = async (email: string, pass:string, name: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const firebaseUser = userCredential.user;
-      // The onIdTokenChanged listener will handle creating the Firestore document.
       await updateProfile(firebaseUser, { displayName: name });
+      // The onIdTokenChanged listener will handle creating the Firestore document.
       return userCredential;
     } catch (error) {
       handleAuthError(error);
@@ -132,9 +115,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      // The onIdTokenChanged listener will handle creating/updating the Firestore document.
-      return userCredential;
+      return await signInWithPopup(auth, provider);
+      // The onIdTokenChanged listener handles document creation.
     } catch (error) {
       handleAuthError(error);
     }
@@ -142,7 +124,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
   const signOut = () => {
-    return firebaseSignOut(auth);
+    return firebaseSignOut(auth).then(() => {
+        router.push('/login');
+    });
   };
 
   const updateUserConsent = async (uid: string) => {
@@ -160,10 +144,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signOut,
     updateUserConsent,
   };
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

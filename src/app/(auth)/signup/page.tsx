@@ -10,7 +10,6 @@ import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
 import { Linkedin } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
@@ -51,7 +50,7 @@ export default function SignupPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      // The useEffect will handle the redirect based on consent status
+      // The useEffect will handle the redirect
     } catch (error: any) {
       toast({
         title: 'Signup Failed',
@@ -60,6 +59,14 @@ export default function SignupPage() {
       });
     }
   };
+  
+  if (loading || (!loading && user)) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-transparent px-4">
@@ -83,7 +90,7 @@ export default function SignupPage() {
                   LinkedIn
                 </Button>
             </div>
-            <div className="relative my-4">
+            <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                 </div>
@@ -93,34 +100,34 @@ export default function SignupPage() {
                     </span>
                 </div>
             </div>
+            <form onSubmit={handleSignup}>
+              <CardContent className="space-y-4 p-0">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" type="text" placeholder="Alex Doe" required value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+                </div>
+              </CardContent>
+              <CardFooter className="flex-col gap-4 p-0 pt-6">
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{' '}
+                  <Link href="/login" className="font-medium text-primary hover:underline">
+                    Sign In
+                  </Link>
+                </p>
+              </CardFooter>
+            </form>
           </CardContent>
-          <form onSubmit={handleSignup}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" type="text" placeholder="Alex Doe" required value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-               <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="font-medium text-primary hover:underline">
-                  Sign In
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
         </Card>
       </div>
     </div>

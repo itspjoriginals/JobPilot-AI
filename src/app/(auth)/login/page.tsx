@@ -10,8 +10,7 @@ import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import { Linkedin, Mail } from 'lucide-react';
+import { Linkedin } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 
 export default function LoginPage() {
@@ -59,6 +58,14 @@ export default function LoginPage() {
     }
   };
 
+  if (loading || (!loading && user)) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-transparent px-4">
       <div className="w-full max-w-md">
@@ -76,12 +83,12 @@ export default function LoginPage() {
                 <FcGoogle className="mr-2 h-5 w-5" />
                 Google
               </Button>
-              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" disabled={loading}>
+              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" disabled>
                 <Linkedin className="mr-2 h-5 w-5" />
                 LinkedIn
               </Button>
             </div>
-            <div className="relative my-4">
+            <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                 </div>
@@ -91,30 +98,30 @@ export default function LoginPage() {
                     </span>
                 </div>
             </div>
+            <form onSubmit={handleLogin}>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Signing In...' : 'Sign In with Email'}
+                </Button>
+              </div>
+            </form>
           </CardContent>
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="alex.doe@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing In...' : 'Sign In with Email'}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/signup" className="font-medium text-primary hover:underline">
-                  Sign Up
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
+          <CardFooter className="flex-col gap-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link href="/signup" className="font-medium text-primary hover:underline">
+                Sign Up
+              </Link>
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

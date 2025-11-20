@@ -10,18 +10,25 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // This effect will run whenever the loading or user state changes.
-    if (!loading) {
-      // Once loading is complete, decide where to route the user.
-      if (user) {
+    if (loading) {
+      return; // Wait until loading is complete
+    }
+
+    if (user) {
+      if (user.hasConsented) {
         router.replace('/jobs');
       } else {
-        router.replace('/login');
+        router.replace('/consent');
       }
+    } else {
+      router.replace('/login');
     }
   }, [loading, user, router]);
 
-  // Always render a loading indicator while the useEffect hook decides the route.
-  // This ensures a consistent output on server and client, preventing hydration errors.
-  return <div>Loading...</div>;
+  // Render a loading state to prevent screen flicker and hydration errors
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div>Loading...</div>
+    </div>
+  );
 }

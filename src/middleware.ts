@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const protectedRoutes = ['/jobs', '/resumes', '/applications', '/settings', '/admin', '/consent'];
-const authRoutes = ['/login', '/signup'];
+// NOTE: This middleware is NOT currently in use because auth state is managed
+// on the client-side in the AuthProvider. If you need server-side protection,
+// you would need a way to verify the Firebase token on the server.
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('firebaseIdToken');
-  const { pathname } = request.nextUrl;
-
-  if (!token && protectedRoutes.some(p => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  if (token && authRoutes.some(p => pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL('/jobs', request.url));
-  }
-
+  // This is a placeholder. For real server-side auth, you'd verify a JWT here.
   return NextResponse.next();
 }
 
