@@ -57,17 +57,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef).catch(e => {
-            // This can happen if offline, but we can proceed with basic user info
-            console.error("Firebase getDoc error:", e);
-            return null;
-        });
+        try {
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
 
-        if (userDoc && userDoc.exists()) {
-          setUser({ ...firebaseUser, ...userDoc.data() } as User);
-        } else {
-          // Fallback if doc doesn't exist yet (e.g., during signup race condition)
+          if (userDoc.exists()) {
+            setUser({ ...firebaseUser, ...userDoc.data() } as User);
+          } else {
+            // Fallback if doc doesn't exist yet (e.g., during signup race condition)
+            setUser(firebaseUser as User);
+          }
+        } catch (error) {
+          console.error("Failed to get user document:", error);
+          // Proceed with just auth data if firestore is offline or fails
           setUser(firebaseUser as User);
         }
       } else {
@@ -149,7 +151,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUserConsent,
   };
   
-  // Render children only after initial auth check is complete
+  if (loading) {
+    return null; // Don't render children until auth check is complete
+  }
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
