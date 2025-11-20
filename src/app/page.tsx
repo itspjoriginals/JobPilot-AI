@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -5,19 +6,22 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function Home() {
-  const router = useRouter();
   const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
+    // This effect will run whenever the loading or user state changes.
     if (!loading) {
+      // Once loading is complete, decide where to route the user.
       if (user) {
         router.replace('/jobs');
       } else {
         router.replace('/login');
       }
     }
-  }, [router, user, loading]);
+  }, [loading, user, router]);
 
-  // You can show a loading spinner here while checking auth state
+  // Always render a loading indicator while the useEffect hook decides the route.
+  // This ensures a consistent output on server and client, preventing hydration errors.
   return <div>Loading...</div>;
 }

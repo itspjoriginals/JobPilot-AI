@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -57,33 +58,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser as User);
+      if (firebaseUser) {
+        // Fetch user doc to get consent status
+        try {
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setUser({ ...firebaseUser, ...userDoc.data() } as User);
+          } else {
+            // User exists in auth, but not in firestore yet (could happen during signup race condition)
+            setUser(firebaseUser as User);
+          }
+        } catch (error) {
+          console.error("Failed to get user document:", error);
+          setUser(firebaseUser as User); // Fallback to auth user object
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (loading || !user) {
-      return;
-    }
-
-    const fetchUserDocument = async () => {
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUser(currentUser => currentUser ? { ...currentUser, ...userDoc.data() } as User : null);
-        }
-      } catch (error) {
-        console.error("Failed to get user document:", error);
-      }
-    };
-
-    fetchUserDocument();
-  }, [user?.uid, loading]);
-
 
   useEffect(() => {
     if (loading) {
@@ -100,11 +97,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         router.push(consentRoute);
       } else if (hasConsented === true && (isAuthRoute || isOnConsentRoute)) {
         router.push('/jobs');
-      } else if (isAuthRoute) {
-        // This handles the case where consent is still being determined but user is on login/signup
-        // No redirect needed here, wait for consent status to resolve.
       }
-    } else { // No user
+    } else { 
       if (!isAuthRoute && !isOnConsentRoute) {
          router.push('/login');
       }
@@ -131,6 +125,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: serverTimestamp(),
         hasConsented: false,
       });
+      // Manually set the user state after signup to include the new firestore data
+      setUser({ ...firebaseUser, hasConsented: false } as User);
 
       return userCredential;
     } catch (error) {
@@ -158,7 +154,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   if (loading) {
-    return null; // Don't render children until the initial auth check is complete
+    // Render a simple loading indicator on the server and initial client render
+    // to prevent content flash and hydration issues.
+    return <div>Loading...</div>;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
