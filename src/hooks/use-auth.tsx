@@ -14,7 +14,10 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 interface User extends FirebaseUser {
   hasConsented?: boolean;
@@ -54,14 +57,10 @@ const handleAuthError = (error: any) => {
   throw error;
 };
 
-const unprotectedRoutes = ['/login', '/signup'];
-const consentRoute = '/consent';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
@@ -71,7 +70,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         let userData;
         if (!userDoc.exists()) {
-          // If the doc doesn't exist, this is the first login after signup.
           const newUserPayload = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
@@ -80,7 +78,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createdAt: serverTimestamp(),
             hasConsented: false,
           };
-          await setDoc(userDocRef, newUserPayload);
+          
+          // Use the new error handling for Firestore operations
+          setDoc(userDocRef, newUserPayload, { merge: true }).catch((serverError) => {
+              const permissionError = new FirestorePermissionError({
+                  path: userDocRef.path,
+                  operation: 'create',
+                  requestResourceData: newUserPayload,
+              }, serverError);
+              errorEmitter.emit('permission-error', permissionError);
+          });
           userData = newUserPayload;
         } else {
           userData = userDoc.data();
@@ -116,7 +123,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const provider = new GoogleAuthProvider();
       return await signInWithPopup(auth, provider);
-      // The onIdTokenChanged listener handles document creation.
     } catch (error) {
       handleAuthError(error);
     }

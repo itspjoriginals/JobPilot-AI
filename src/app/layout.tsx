@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
 import { FluidBackground } from '@/components/fluid-background';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const metadata: Metadata = {
   title: 'JobPilot AI',
@@ -31,6 +32,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            <FirebaseErrorListener />
             <FluidBackground />
             {children}
             <Toaster />
