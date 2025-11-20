@@ -10,10 +10,13 @@ import { Logo } from '@/components/logo';
 import { useAuth } from '@/hooks/use-auth';
 import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
+import { Linkedin, Mail } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, user, loading } = useAuth();
+  const { signIn, signInWithGoogle, user, loading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -29,7 +32,20 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signIn(email, password);
-      // The useEffect hook will handle the redirect
+      router.push('/jobs');
+    } catch (error: any) {
+      toast({
+        title: 'Login Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      router.push('/jobs');
     } catch (error: any) {
       toast({
         title: 'Login Failed',
@@ -50,6 +66,23 @@ export default function LoginPage() {
             <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
             <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Button variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
+                <FcGoogle className="mr-2 h-5 w-5" />
+                Google
+              </Button>
+              <Button variant="outline" className="bg-[#0A66C2] text-white hover:bg-[#0A66C2]/90 hover:text-white" disabled={loading}>
+                <Linkedin className="mr-2 h-5 w-5" />
+                LinkedIn
+              </Button>
+            </div>
+            <div className="flex items-center">
+              <Separator className="flex-grow" />
+              <span className="mx-4 text-xs text-muted-foreground">OR CONTINUE WITH</span>
+              <Separator className="flex-grow" />
+            </div>
+          </CardContent>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -63,7 +96,7 @@ export default function LoginPage() {
             </CardContent>
             <CardFooter className="flex-col gap-4">
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing In...' : 'Sign In'}
+                {loading ? 'Signing In...' : 'Sign In with Email'}
               </Button>
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{' '}
