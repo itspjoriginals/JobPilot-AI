@@ -10,8 +10,7 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
   GoogleAuthProvider,
-  signInWithPopup,
-  getAdditionalUserInfo
+  signInWithPopup
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';

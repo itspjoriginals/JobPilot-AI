@@ -21,7 +21,7 @@ const auth = getAuth(app);
 // Initialize Firestore with offline persistence.
 // The `memoryLocalCache` is a fallback for environments where IndexedDB is not available.
 const db = initializeFirestore(app, {
-  localCache: memoryLocalCache(),
+  cache: memoryLocalCache(),
 });
 
 export { app, auth, db };
