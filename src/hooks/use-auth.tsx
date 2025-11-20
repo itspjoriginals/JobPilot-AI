@@ -19,7 +19,7 @@ interface User extends FirebaseUser {
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean; // This will represent the initial auth state check
+  loading: boolean;
   signIn: (email: string, pass: string) => Promise<any>;
   signUp: (email: string, pass: string, name: string) => Promise<any>;
   signOut: () => Promise<any>;
@@ -47,34 +47,17 @@ const handleAuthError = (error: any) => {
 };
 
 const unprotectedRoutes = ['/login', '/signup'];
+const consentRoute = '/consent';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Represents the initial auth check
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (userDoc.exists()) {
-            setUser({ ...firebaseUser, ...userDoc.data() } as User);
-          } else {
-            // Fallback if doc doesn't exist yet (e.g., during signup race condition)
-            setUser(firebaseUser as User);
-          }
-        } catch (error) {
-          console.error("Failed to get user document:", error);
-          // Proceed with just auth data if firestore is offline or fails
-          setUser(firebaseUser as User);
-        }
-      } else {
-        setUser(null);
-      }
+      setUser(firebaseUser as User);
       setLoading(false);
     });
 
@@ -82,26 +65,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    if (loading) {
-      return; // Don't do anything while loading
+    if (loading || !user) {
+      return;
     }
 
-    const isUserLoggedIn = !!user;
-    const isAuthRoute = unprotectedRoutes.includes(pathname);
-    const requiresConsent = user && !user.hasConsented;
+    const fetchUserDocument = async () => {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setUser(currentUser => currentUser ? { ...currentUser, ...userDoc.data() } as User : null);
+        }
+      } catch (error) {
+        console.error("Failed to get user document:", error);
+      }
+    };
 
-    if (isUserLoggedIn) {
-        if (requiresConsent) {
-            if (pathname !== '/consent') {
-                router.push('/consent');
-            }
-        } else if (isAuthRoute) {
-            router.push('/jobs');
-        }
-    } else { // User is not logged in
-        if (!isAuthRoute && pathname !== '/consent') {
-             router.push('/login');
-        }
+    fetchUserDocument();
+  }, [user?.uid, loading]);
+
+
+  useEffect(() => {
+    if (loading) {
+      return; 
+    }
+
+    const isAuthRoute = unprotectedRoutes.includes(pathname);
+    const isOnConsentRoute = pathname === consentRoute;
+
+    if (user) {
+      const hasConsented = (user as any).hasConsented;
+      
+      if (hasConsented === false && !isOnConsentRoute) {
+        router.push(consentRoute);
+      } else if (hasConsented === true && (isAuthRoute || isOnConsentRoute)) {
+        router.push('/jobs');
+      } else if (isAuthRoute) {
+        // This handles the case where consent is still being determined but user is on login/signup
+        // No redirect needed here, wait for consent status to resolve.
+      }
+    } else { // No user
+      if (!isAuthRoute && !isOnConsentRoute) {
+         router.push('/login');
+      }
     }
 
   }, [user, loading, pathname, router]);
@@ -152,7 +158,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   if (loading) {
-    return null; // Don't render children until auth check is complete
+    return null; // Don't render children until the initial auth check is complete
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
