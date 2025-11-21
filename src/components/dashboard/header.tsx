@@ -10,16 +10,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, PanelLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
+import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { DashboardSidebar } from './sidebar';
 
 export function DashboardHeader() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -27,11 +28,25 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <SidebarTrigger className="sm:hidden" />
-      <div className="relative ml-auto flex-1 md:grow-0">
-        {/* Can add a search bar here later */}
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+      <div className="sm:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button size="icon" variant="outline">
+              <PanelLeft className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="sm:max-w-xs">
+            <DashboardSidebar />
+          </SheetContent>
+        </Sheet>
       </div>
+
+      <div className="flex-1">
+        {/* Can add a title here later */}
+      </div>
+      
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -43,7 +58,7 @@ export function DashboardHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{user?.displayName}</DropdownMenuLabel>
+          <DropdownMenuLabel>{loading ? '...' : user?.displayName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/settings">

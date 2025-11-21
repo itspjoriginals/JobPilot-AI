@@ -9,12 +9,89 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
 import { mockUser } from '@/lib/data';
 import { Linkedin, Save, PlusCircle, Trash2 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function SettingsSkeleton() {
+    return (
+      <div className="container mx-auto space-y-8">
+        <div>
+            <Skeleton className="h-9 w-40" />
+            <Skeleton className="h-5 w-72 mt-2" />
+        </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-8">
+              <Card>
+                  <CardHeader>
+                      <Skeleton className="h-6 w-56" />
+                      <Skeleton className="h-5 w-80 mt-2" />
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Skeleton className="h-5 w-32" />
+                        <div className="grid grid-cols-3 gap-4">
+                            <Skeleton className="h-20 w-full" />
+                            <Skeleton className="h-20 w-full" />
+                            <Skeleton className="h-20 w-full" />
+                        </div>
+                      </div>
+                       <div className="space-y-2">
+                          <Skeleton className="h-5 w-64" />
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-4 w-full max-w-sm" />
+                      </div>
+                  </CardContent>
+              </Card>
+  
+              <Card>
+                  <CardHeader>
+                      <Skeleton className="h-6 w-40" />
+                      <Skeleton className="h-5 w-72 mt-2" />
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div className="space-y-4">
+                          <Skeleton className="h-10 w-full" />
+                          <Skeleton className="h-10 w-full" />
+                      </div>
+                      <Skeleton className="h-10 w-full mt-4" />
+                  </CardContent>
+              </Card>
+          </div>
+          <div className="space-y-8">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-32 mt-2 mx-auto" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 export default function SettingsPage() {
+  const { user, signInWithLinkedIn, loading: authLoading } = useAuth();
+  
+  // Initialize state with mockUser and update with real user data when available
   const [dailyLimit, setDailyLimit] = useState(mockUser.dailyApplyLimit);
   const [strategy, setStrategy] = useState(mockUser.applyStrategy);
   const [savedAnswers, setSavedAnswers] = useState(mockUser.savedAnswers);
+
+  const handleLinkedInConnect = async () => {
+    try {
+      await signInWithLinkedIn();
+    } catch (error) {
+      console.error("LinkedIn Sign-in failed", error);
+    }
+  };
+
+  if (authLoading || !user) {
+    return <SettingsSkeleton />;
+  }
 
   return (
     <div className="container mx-auto space-y-8">
@@ -96,7 +173,7 @@ export default function SettingsPage() {
               <CardTitle className="font-headline">Integrations</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button className="w-full bg-[#0A66C2] hover:bg-[#0A66C2]/90">
+              <Button onClick={handleLinkedInConnect} className="w-full bg-[#0A66C2] hover:bg-[#0A66C2]/90">
                 <Linkedin className="mr-2 h-4 w-4" />
                 {mockUser.linkedInSessionStatus === 'active' ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
               </Button>
