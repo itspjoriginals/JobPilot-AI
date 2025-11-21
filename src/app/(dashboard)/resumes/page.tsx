@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef } from 'react';
@@ -98,6 +99,8 @@ export default function ResumesPage() {
       const pdf = (await import('pdf-parse/lib/pdf-parse')).default;
       if (typeof window !== 'undefined') {
         (window as any).pdf = pdf;
+        // Set the workerSrc to fix the error. This points to the worker file from the jsdelivr CDN.
+        (window as any).pdf.workerSrc = `//unpkg.com/pdfjs-dist@${(window as any).pdf.PDFJS.version}/build/pdf.worker.min.js`;
       }
 
       const arrayBuffer = await file.arrayBuffer();
