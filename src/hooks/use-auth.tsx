@@ -2,16 +2,17 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  User as FirebaseUser, 
-  onIdTokenChanged, 
-  signInWithEmailAndPassword, 
+import {
+  User as FirebaseUser,
+  onIdTokenChanged,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
   signOut as firebaseSignOut,
   GoogleAuthProvider,
   OAuthProvider,
-  signInWithPopup
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
@@ -57,9 +58,9 @@ const handleAuthError = (error: any) => {
       case 'auth/account-exists-with-different-credential':
         throw new Error('An account already exists with the same email address but different sign-in credentials.');
       case 'auth/auth-domain-config-required':
-         throw new Error('Authentication domain is not configured. Please check your Firebase project settings.');
+        throw new Error('Authentication domain is not configured. Please check your Firebase project settings.');
       case 'auth/cancelled-popup-request':
-         return; // Do nothing, user cancelled.
+        return; // Do nothing, user cancelled.
       default:
         throw new Error(error.message || 'An unexpected authentication error occurred.');
     }
@@ -73,6 +74,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
 
   useEffect(() => {
+    // Handle OAuth redirect result
+    getRedirectResult(auth).catch((error) => {
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        console.error('Redirect result error:', error);
+      }
+    });
+
     const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -88,20 +96,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createdAt: serverTimestamp(),
             hasConsented: false,
           };
-          
+
           setDoc(userDocRef, newUserPayload, { merge: true }).catch((serverError) => {
-              const permissionError = new FirestorePermissionError({
-                  path: userDocRef.path,
-                  operation: 'create',
-                  requestResourceData: newUserPayload,
-              }, serverError);
-              errorEmitter.emit('permission-error', permissionError);
+            const permissionError = new FirestorePermissionError({
+              path: userDocRef.path,
+              operation: 'create',
+              requestResourceData: newUserPayload,
+            }, serverError);
+            errorEmitter.emit('permission-error', permissionError);
           });
           userData = newUserPayload;
         } else {
           userData = userDoc.data();
         }
-        
+
         setUser({ ...firebaseUser, ...userData } as User);
 
       } else {
@@ -116,7 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return signInWithEmailAndPassword(auth, email, pass).catch(handleAuthError);
   };
 
-  const signUp = async (email: string, pass:string, name: string) => {
+  const signUp = async (email: string, pass: string, name: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const firebaseUser = userCredential.user;
@@ -131,7 +139,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      return await signInWithPopup(auth, provider);
+      await signInWithRedirect(auth, provider);
+      // Note: signInWithRedirect will navigate away, so we don't return here
     } catch (error) {
       handleAuthError(error);
     }
@@ -140,7 +149,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signInWithLinkedIn = async () => {
     try {
       const provider = new OAuthProvider('linkedin.com');
-      return await signInWithPopup(auth, provider);
+      await signInWithRedirect(auth, provider);
+      // Note: signInWithRedirect will navigate away, so we don't return here
     } catch (error) {
       handleAuthError(error);
     }
@@ -149,7 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signOut = () => {
     return firebaseSignOut(auth).then(() => {
-        router.push('/login');
+      router.push('/login');
     });
   };
 
