@@ -31,6 +31,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    // This is to prevent the "fs" module from being bundled on the client side
+    // as it is a node-only module.
+    if (!isServer) {
+        config.resolve.fallback = {
+            fs: false
+        }
+    }
+
+    return config;
+  }
 };
 
 export default nextConfig;
