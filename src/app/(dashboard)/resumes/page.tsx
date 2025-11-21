@@ -96,13 +96,14 @@ export default function ResumesPage() {
     }, 100);
 
     try {
+      // Dynamically import pdf-parse and set up workerSrc for browser environment
       const pdf = (await import('pdf-parse/lib/pdf-parse')).default;
       if (typeof window !== 'undefined') {
-        (window as any).pdf = pdf;
-        // Set the workerSrc to fix the error. This points to the worker file from the jsdelivr CDN.
-        (window as any).pdf.workerSrc = `//unpkg.com/pdfjs-dist@${(window as any).pdf.PDFJS.version}/build/pdf.worker.min.js`;
+          (window as any).pdf = pdf;
+          // Set the workerSrc to fix the error. This points to the worker file from a reliable CDN.
+          (window as any).pdf.workerSrc = `//unpkg.com/pdfjs-dist@${(window as any).pdf.PDFJS.version}/build/pdf.worker.min.js`;
       }
-
+      
       const arrayBuffer = await file.arrayBuffer();
       const pdfParser = (window as any).pdf;
       const data = await pdfParser(Buffer.from(arrayBuffer));
@@ -130,13 +131,13 @@ export default function ResumesPage() {
         });
       }, 500);
 
-    } catch (error) {
+    } catch (error: any) {
       clearInterval(progressInterval);
       setUploadProgress(null);
       console.error("Error parsing resume:", error);
       toast({
         title: 'Parsing Failed',
-        description: 'The AI could not parse this resume. Please try another file.',
+        description: error.message || 'The AI could not parse this resume. Please try another file.',
         variant: 'destructive',
       });
     } finally {

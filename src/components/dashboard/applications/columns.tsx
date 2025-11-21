@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
@@ -13,6 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toast } from '@/hooks/use-toast';
+
+const handleAction = (action: string, log: ApplicationLog) => {
+    toast({
+        title: `Action: ${action}`,
+        description: `Performed '${action}' for job: ${log.jobTitle}`,
+    });
+};
+
 
 const statusVariant: { [key: string]: 'default' | 'secondary' | 'destructive' } = {
     Success: 'default',
@@ -82,13 +92,22 @@ export const columns: ColumnDef<ApplicationLog>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(log.jobId)}
+              onClick={() => {
+                navigator.clipboard.writeText(log.jobId);
+                toast({ title: 'Copied Job ID' });
+              }}
             >
               Copy Job ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View Job Details</DropdownMenuItem>
-            {log.status === 'Failed' && <DropdownMenuItem>View Error Details</DropdownMenuItem>}
+            <DropdownMenuItem onClick={() => handleAction('View Job Details', log)}>
+                View Job Details
+            </DropdownMenuItem>
+            {log.status === 'Failed' && 
+                <DropdownMenuItem onClick={() => handleAction('View Error Details', log)}>
+                    View Error Details
+                </DropdownMenuItem>
+            }
           </DropdownMenuContent>
         </DropdownMenu>
       );

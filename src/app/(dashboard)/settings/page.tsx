@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { Linkedin, Save, PlusCircle, Trash2 } from 'lucide-react';
+import { Linkedin, Save, PlusCircle, Trash2, Upload, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -110,6 +111,7 @@ export default function SettingsPage() {
   const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([]);
   const [linkedInStatus, setLinkedInStatus] = useState<'active' | 'expired' | 'none'>('none');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
@@ -152,7 +154,7 @@ export default function SettingsPage() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
     
-    setIsSaving(true);
+    setIsUploading(true);
     const storage = getStorage();
     const storageRef = ref(storage, `profilePictures/${user.uid}`);
     
@@ -163,11 +165,11 @@ export default function SettingsPage() {
         await updateDoc(userDocRef, { photoURL });
         setUser({ ...user, photoURL });
         toast({ title: 'Profile picture updated successfully!' });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error uploading profile picture: ", error);
-        toast({ title: 'Upload Failed', description: 'Could not upload profile picture.', variant: 'destructive' });
+        toast({ title: 'Upload Failed', description: 'Could not upload profile picture. If this persists, please check storage permissions.', variant: 'destructive' });
     } finally {
-        setIsSaving(false);
+        setIsUploading(false);
     }
   };
 
@@ -296,7 +298,10 @@ export default function SettingsPage() {
                         <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
                         <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <Button variant="outline" onClick={handleProfilePictureUpload}>Upload Picture</Button>
+                    <Button variant="outline" onClick={handleProfilePictureUpload} disabled={isUploading}>
+                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                        {isUploading ? 'Uploading...' : 'Upload Picture'}
+                    </Button>
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                 </div>
                 <div className="space-y-2">
@@ -325,7 +330,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
                 <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving}>
-                    <Save className="mr-2 h-4 w-4" />
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     {isSaving ? 'Saving...' : 'Save Settings'}
                 </Button>
             </CardContent>
