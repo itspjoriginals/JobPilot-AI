@@ -1,9 +1,12 @@
 'use client';
 import { JobCard } from "@/components/dashboard/job-card";
-import { mockJobs } from "@/lib/data";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { findRelevantJobs } from "@/ai/flows/find-relevant-jobs";
+import type { Job } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 function JobsSkeleton() {
   return (
@@ -50,20 +53,75 @@ function JobsSkeleton() {
 
 
 export default function DashboardJobsPage() {
-  const { loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      const fetchJobs = async () => {
+        setLoadingJobs(true);
+        try {
+          const userProfileForJobs = {
+            name: user.displayName || 'User',
+            // This is a simplified example. A real app would get skills/experience
+            // from the user's profile stored in Firestore.
+            skills: ['React', 'TypeScript', 'Node.js', 'Web Development'],
+            experience: [{
+              title: 'Software Engineer',
+              company: 'Tech Co',
+              description: 'Developed full-stack web applications.'
+            }],
+            location: 'Remote'
+          };
+
+          const result = await findRelevantJobs({ userProfile: userProfileForJobs });
+          setJobs(result.jobs);
+        } catch (error) {
+          console.error("Failed to fetch jobs:", error);
+          toast({
+            title: "Error",
+            description: "Could not fetch job recommendations. Please try again later.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoadingJobs(false);
+        }
+      };
+      fetchJobs();
+    }
+  }, [user, toast]);
   
-  if (authLoading) {
+  if (authLoading || loadingJobs) {
     return <JobsSkeleton />;
   }
+
+  const handleJobAction = (jobId: string, action: 'skip' | 'save' | 'apply') => {
+    toast({
+      title: 'Action Received',
+      description: `Job ${jobId} action: ${action}`,
+    });
+    // Here you would implement logic to handle the action,
+    // e.g., update state, call an API, etc.
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+  };
+
 
   return (
     <div className="container mx-auto">
       <h1 className="mb-6 font-headline text-3xl font-bold">Recommended Jobs</h1>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {mockJobs.map((job) => (
-          <JobCard key={job.id} job={job} />
-        ))}
-      </div>
+      {jobs.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {jobs.map((job) => (
+            <JobCard key={job.id} job={job} onAction={handleJobAction} />
+            ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+            <p className="text-muted-foreground">No job recommendations available at the moment.</p>
+        </div>
+      )}
     </div>
   );
 }

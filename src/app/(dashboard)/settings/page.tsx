@@ -1,16 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
-import { mockUser } from '@/lib/data';
 import { Linkedin, Save, PlusCircle, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+interface SavedAnswer {
+  pattern: string;
+  generatedAnswer: string;
+}
 
 function SettingsSkeleton() {
     return (
@@ -62,34 +71,143 @@ function SettingsSkeleton() {
               <CardHeader>
                 <Skeleton className="h-6 w-32" />
               </CardHeader>
+              <CardContent className="space-y-4">
+                 <Skeleton className="h-24 w-24 rounded-full mx-auto" />
+                 <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
               <CardContent>
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-4 w-32 mt-2 mx-auto" />
               </CardContent>
             </Card>
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-6 w-24" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     );
-  }
+}
 
 export default function SettingsPage() {
-  const { user, signInWithLinkedIn, loading: authLoading } = useAuth();
+  const { user, signInWithLinkedIn, loading: authLoading, setUser } = useAuth();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Initialize state with mockUser and update with real user data when available
-  const [dailyLimit, setDailyLimit] = useState(mockUser.dailyApplyLimit);
-  const [strategy, setStrategy] = useState(mockUser.applyStrategy);
-  const [savedAnswers, setSavedAnswers] = useState(mockUser.savedAnswers);
+  const [name, setName] = useState('');
+  const [dailyLimit, setDailyLimit] = useState(20);
+  const [strategy, setStrategy] = useState<'Aggressive' | 'Balanced' | 'Targeted'>('Balanced');
+  const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([]);
+  const [linkedInStatus, setLinkedInStatus] = useState<'active' | 'expired' | 'none'>('none');
+  const [isSaving, setIsSaving] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      const fetchUserData = async () => {
+        setPageLoading(true);
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setName(data.displayName || user.displayName || '');
+          setDailyLimit(data.dailyApplyLimit || 20);
+          setStrategy(data.applyStrategy || 'Balanced');
+          setSavedAnswers(data.savedAnswers || []);
+          setLinkedInStatus(data.linkedInSessionStatus || 'none');
+        } else {
+            // Pre-fill from auth if no doc exists
+            setName(user.displayName || '');
+        }
+        setPageLoading(false);
+      };
+      fetchUserData();
+    }
+  }, [user]);
 
   const handleLinkedInConnect = async () => {
     try {
       await signInWithLinkedIn();
+      toast({ title: 'LinkedIn connection initiated. Please follow the instructions.' });
+    } catch (error: any) {
+      toast({ title: 'LinkedIn Connection Failed', description: error.message, variant: 'destructive' });
+    }
+  };
+  
+  const handleProfilePictureUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+    
+    setIsSaving(true);
+    const storage = getStorage();
+    const storageRef = ref(storage, `profilePictures/${user.uid}`);
+    
+    try {
+        await uploadBytes(storageRef, file);
+        const photoURL = await getDownloadURL(storageRef);
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { photoURL });
+        setUser({ ...user, photoURL });
+        toast({ title: 'Profile picture updated successfully!' });
     } catch (error) {
-      console.error("LinkedIn Sign-in failed", error);
+        console.error("Error uploading profile picture: ", error);
+        toast({ title: 'Upload Failed', description: 'Could not upload profile picture.', variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
     }
   };
 
-  if (authLoading || !user) {
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userData = {
+        displayName: name,
+        dailyApplyLimit,
+        applyStrategy: strategy,
+        savedAnswers,
+      };
+      await setDoc(userDocRef, userData, { merge: true });
+      toast({ title: 'Settings saved successfully!' });
+    } catch (error) {
+      console.error("Error saving settings: ", error);
+      toast({ title: 'Save Failed', description: 'Could not save settings.', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAnswerChange = (index: number, field: keyof SavedAnswer, value: string) => {
+    const newAnswers = [...savedAnswers];
+    newAnswers[index][field] = value;
+    setSavedAnswers(newAnswers);
+  };
+  
+  const addAnswer = () => {
+    setSavedAnswers([...savedAnswers, { pattern: '', generatedAnswer: '' }]);
+  };
+  
+  const removeAnswer = (index: number) => {
+    setSavedAnswers(savedAnswers.filter((_, i) => i !== index));
+  };
+
+
+  if (authLoading || pageLoading) {
     return <SettingsSkeleton />;
   }
 
@@ -154,14 +272,14 @@ export default function SettingsPage() {
                         <div key={index} className="flex items-end gap-2">
                             <div className="flex-grow space-y-2">
                                 <Label htmlFor={`q-${index}`}>Question Pattern</Label>
-                                <Input id={`q-${index}`} value={answer.pattern} />
+                                <Input id={`q-${index}`} value={answer.pattern} onChange={(e) => handleAnswerChange(index, 'pattern', e.target.value)} />
                                 <Label htmlFor={`a-${index}`}>Generated Answer</Label>
-                                <Input id={`a-${index}`} value={answer.generatedAnswer} />
+                                <Input id={`a-${index}`} value={answer.generatedAnswer} onChange={(e) => handleAnswerChange(index, 'generatedAnswer', e.target.value)} />
                             </div>
-                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => removeAnswer(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                     ))}
-                     <Button variant="outline" className="w-full mt-4">
+                     <Button variant="outline" className="w-full mt-4" onClick={addAnswer}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Answer
                     </Button>
                 </CardContent>
@@ -170,16 +288,46 @@ export default function SettingsPage() {
         <div className="space-y-8">
           <Card>
             <CardHeader>
+                <CardTitle className="font-headline">Profile</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex flex-col items-center space-y-4">
+                    <Avatar className="h-24 w-24">
+                        <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                        <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <Button variant="outline" onClick={handleProfilePictureUpload}>Upload Picture</Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle className="font-headline">Integrations</CardTitle>
             </CardHeader>
             <CardContent>
               <Button onClick={handleLinkedInConnect} className="w-full bg-[#0A66C2] hover:bg-[#0A66C2]/90">
                 <Linkedin className="mr-2 h-4 w-4" />
-                {mockUser.linkedInSessionStatus === 'active' ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+                {linkedInStatus === 'active' ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
               </Button>
               <p className="mt-2 text-center text-xs text-muted-foreground">
-                Session status: <span className={mockUser.linkedInSessionStatus === 'active' ? 'text-green-500' : 'text-red-500'}>{mockUser.linkedInSessionStatus}</span>
+                Session status: <span className={linkedInStatus === 'active' ? 'text-green-500' : 'text-red-500'}>{linkedInStatus}</span>
               </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Save All Changes</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSaving ? 'Saving...' : 'Save Settings'}
+                </Button>
             </CardContent>
           </Card>
         </div>

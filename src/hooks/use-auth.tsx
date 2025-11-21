@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -34,6 +33,7 @@ interface AuthContextType {
   signInWithLinkedIn: () => Promise<any>;
   signOut: () => Promise<any>;
   updateUserConsent: (uid: string) => Promise<void>;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -140,7 +140,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const provider = new GoogleAuthProvider();
       await signInWithRedirect(auth, provider);
-      // Note: signInWithRedirect will navigate away, so we don't return here
     } catch (error) {
       handleAuthError(error);
     }
@@ -150,7 +149,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const provider = new OAuthProvider('linkedin.com');
       await signInWithRedirect(auth, provider);
-      // Note: signInWithRedirect will navigate away, so we don't return here
     } catch (error) {
       handleAuthError(error);
     }
@@ -178,6 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signInWithLinkedIn,
     signOut,
     updateUserConsent,
+    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

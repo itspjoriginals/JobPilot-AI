@@ -9,7 +9,6 @@ export type User = {
   savedAnswers: {
     pattern: string;
     generatedAnswer: string;
-    updatedAt: string;
   }[];
 };
 
@@ -28,12 +27,7 @@ export type Job = {
   datePosted: string;
 };
 
-export type Resume = {
-  id: string;
-  name: string;
-  fileUrl: string;
-  createdAt: string;
-  parsedData: {
+export type ParsedResume = {
     skills: {
       technical: string[];
       tools: string[];
@@ -51,7 +45,14 @@ export type Resume = {
       description: string;
       tags: string[];
     }[];
-  };
+}
+
+export type Resume = {
+  id: string;
+  name: string;
+  fileUrl: string;
+  createdAt: string;
+  parsedData: ParsedResume;
 };
 
 export type ApplicationLog = {

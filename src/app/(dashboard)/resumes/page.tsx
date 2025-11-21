@@ -12,7 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { parseResume } from '@/ai/flows/parse-resume-flow';
+import pdf from 'pdf-parse/lib/pdf-parse';
 
+// Hook to make pdf-parse work in browser
+if (typeof window !== 'undefined') {
+  (window as any).pdf = pdf;
+}
 
 function ResumesSkeleton() {
     return (
@@ -61,54 +67,83 @@ export default function ResumesPage() {
     setIsReviewing(false);
     setSelectedResume(null);
   };
+  
+  const handleUpdateResume = (updatedResume: Resume) => {
+    setResumes(prev => prev.map(r => r.id === updatedResume.id ? updatedResume : r));
+    toast({
+        title: 'Success',
+        description: 'Resume updated successfully.'
+    });
+  }
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        toast({
-          title: 'Upload Failed',
-          description: 'Please upload a PDF file.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      // Simulate upload process
-      setUploadProgress(0);
-      const newResumeId = `resume-${resumes.length + 1}`;
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: 'Upload Failed',
+        description: 'Please upload a PDF file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadProgress(0);
+    const newResumeId = `resume-${resumes.length + 1}`;
+    
+    // Simulate initial upload progress
+    const progressInterval = setInterval(() => {
+        setUploadProgress(prev => (prev !== null && prev < 80 ? prev + 5 : prev));
+    }, 100);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfParser = (window as any).pdf as typeof pdf;
+      const data = await pdfParser(Buffer.from(arrayBuffer));
+      const resumeText = data.text;
+
+      // Now call the AI flow to parse the text
+      const { parsedData } = await parseResume({ resumeText });
+      
       const newResume: Resume = {
         id: newResumeId,
         name: file.name,
         fileUrl: URL.createObjectURL(file), // temp URL
         createdAt: new Date().toISOString(),
-        // Mock parsed data until backend is ready
-        parsedData: mockResumes[0].parsedData,
+        parsedData: parsedData,
       };
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev === null) return 0;
-          if (prev >= 100) {
-            clearInterval(interval);
-            setResumes((prevResumes) => [newResume, ...prevResumes]);
-            setUploadProgress(null);
-            toast({
-              title: 'Upload Successful',
-              description: `${file.name} has been added.`,
-            });
-            // Reset file input
-            if(fileInputRef.current) fileInputRef.current.value = "";
-            return null;
-          }
-          return prev + 10;
+      setTimeout(() => {
+        setResumes((prevResumes) => [newResume, ...prevResumes]);
+        setUploadProgress(null);
+        toast({
+          title: 'Upload & Parsing Successful',
+          description: `${file.name} has been parsed.`,
         });
-      }, 200);
+      }, 500);
+
+    } catch (error) {
+      clearInterval(progressInterval);
+      setUploadProgress(null);
+      console.error("Error parsing resume:", error);
+      toast({
+        title: 'Parsing Failed',
+        description: 'The AI could not parse this resume. Please try another file.',
+        variant: 'destructive',
+      });
+    } finally {
+        if(fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
 
   if (authLoading) {
     return <ResumesSkeleton />;
@@ -138,7 +173,7 @@ export default function ResumesPage() {
         {uploadProgress !== null && (
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline text-lg">Uploading...</CardTitle>
+                    <CardTitle className="font-headline text-lg">Uploading & Parsing...</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                     <Progress value={uploadProgress} />
@@ -166,6 +201,7 @@ export default function ResumesPage() {
         resume={selectedResume}
         isOpen={isReviewing}
         onClose={handleCloseDialog}
+        onSave={handleUpdateResume}
       />
     </div>
   );

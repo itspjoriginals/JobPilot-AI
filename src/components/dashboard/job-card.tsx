@@ -12,9 +12,10 @@ import {
 
 interface JobCardProps {
   job: Job;
+  onAction: (jobId: string, action: 'skip' | 'save' | 'apply') => void;
 }
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onAction }: JobCardProps) {
   const scoreColor = job.jobScore > 85 ? 'text-green-500' : job.jobScore > 70 ? 'text-yellow-500' : 'text-red-500';
 
   return (
@@ -70,7 +71,7 @@ export function JobCard({ job }: JobCardProps) {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" className="w-1/3">
+              <Button variant="outline" size="icon" className="w-1/3" onClick={() => onAction(job.id, 'skip')}>
                 <X className="h-4 w-4" />
                 <span className="sr-only">Skip</span>
               </Button>
@@ -79,7 +80,7 @@ export function JobCard({ job }: JobCardProps) {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" className="w-1/3">
+              <Button variant="outline" size="icon" className="w-1/3" onClick={() => onAction(job.id, 'save')}>
                 <Save className="h-4 w-4" />
                  <span className="sr-only">Save</span>
               </Button>
@@ -87,7 +88,7 @@ export function JobCard({ job }: JobCardProps) {
             <TooltipContent><p>Save for Later</p></TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <Button className="flex-grow w-1/3" >
+        <Button className="flex-grow w-1/3" onClick={() => onAction(job.id, 'apply')}>
           <Check className="mr-2 h-4 w-4" /> Apply
         </Button>
       </CardFooter>
