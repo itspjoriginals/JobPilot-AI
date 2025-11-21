@@ -97,16 +97,13 @@ export default function ResumesPage() {
 
     try {
       // Dynamically import pdf-parse and set up workerSrc for browser environment
-      const pdf = (await import('pdf-parse/lib/pdf-parse')).default;
+      const pdf = (await import('pdf-parse')).default;
       if (typeof window !== 'undefined') {
-          (window as any).pdf = pdf;
-          // Set the workerSrc to fix the error. This points to the worker file from a reliable CDN.
-          (window as any).pdf.workerSrc = `//unpkg.com/pdfjs-dist@${(window as any).pdf.PDFJS.version}/build/pdf.worker.min.js`;
+          (pdf as any).workerSrc = `//unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js`;
       }
       
       const arrayBuffer = await file.arrayBuffer();
-      const pdfParser = (window as any).pdf;
-      const data = await pdfParser(Buffer.from(arrayBuffer));
+      const data = await pdf(Buffer.from(arrayBuffer));
       const resumeText = data.text;
       
       const { parsedData } = await parseResume({ resumeText });
