@@ -13,12 +13,6 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { parseResume } from '@/ai/flows/parse-resume-flow';
-import pdf from 'pdf-parse/lib/pdf-parse';
-
-// Hook to make pdf-parse work in browser
-if (typeof window !== 'undefined') {
-  (window as any).pdf = pdf;
-}
 
 function ResumesSkeleton() {
     return (
@@ -96,24 +90,27 @@ export default function ResumesPage() {
     setUploadProgress(0);
     const newResumeId = `resume-${resumes.length + 1}`;
     
-    // Simulate initial upload progress
     const progressInterval = setInterval(() => {
         setUploadProgress(prev => (prev !== null && prev < 80 ? prev + 5 : prev));
     }, 100);
 
     try {
+      const pdf = (await import('pdf-parse/lib/pdf-parse')).default;
+      if (typeof window !== 'undefined') {
+        (window as any).pdf = pdf;
+      }
+
       const arrayBuffer = await file.arrayBuffer();
-      const pdfParser = (window as any).pdf as typeof pdf;
+      const pdfParser = (window as any).pdf;
       const data = await pdfParser(Buffer.from(arrayBuffer));
       const resumeText = data.text;
-
-      // Now call the AI flow to parse the text
+      
       const { parsedData } = await parseResume({ resumeText });
       
       const newResume: Resume = {
         id: newResumeId,
         name: file.name,
-        fileUrl: URL.createObjectURL(file), // temp URL
+        fileUrl: URL.createObjectURL(file),
         createdAt: new Date().toISOString(),
         parsedData: parsedData,
       };

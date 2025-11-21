@@ -31,10 +31,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    config.resolve.alias.fs = false;
-    return config;
-  },
 };
 
 export default nextConfig;
