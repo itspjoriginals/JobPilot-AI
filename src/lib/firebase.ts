@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
+import { initializeFirestore, memoryLocalCache, persistentLocalCache } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 // Using environment variables to keep keys secure
@@ -21,7 +21,8 @@ const auth = getAuth(app);
 
 // Initialize Firestore with memory cache as a fallback for persistence.
 const db = initializeFirestore(app, {
-  cache: memoryLocalCache(),
+  localCache: persistentLocalCache(/* settings */),
 });
+
 
 export { app, auth, db };
